@@ -36,6 +36,7 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 [Arr::forget](#method-array-forget)
 [Arr::get](#method-array-get)
 [Arr::has](#method-array-has)
+[Arr::isAssoc](#method-array-isassoc)
 [Arr::last](#method-array-last)
 [Arr::only](#method-array-only)
 [Arr::pluck](#method-array-pluck)
@@ -78,9 +79,12 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 [e](#method-e)
 [preg_replace_array](#method-preg-replace-array)
 [Str::after](#method-str-after)
+[Str::afterLast](#method-str-after-last)
 [Str::before](#method-str-before)
+[Str::beforeLast](#method-str-before-last)
 [Str::camel](#method-camel-case)
 [Str::contains](#method-str-contains)
+[Str::containsAll](#method-str-contains-all)
 [Str::endsWith](#method-ends-with)
 [Str::finish](#method-str-finish)
 [Str::is](#method-str-is)
@@ -100,6 +104,7 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 [Str::studly](#method-studly-case)
 [Str::title](#method-title-case)
 [Str::uuid](#method-str-uuid)
+[Str::words](#method-str-words)
 [trans](#method-trans)
 [trans_choice](#method-trans-choice)
 
@@ -340,6 +345,21 @@ The `Arr::has` method checks whether a given item or items exists in an array us
     // true
 
     $contains = Arr::has($array, ['product.price', 'product.discount']);
+
+    // false
+ 
+<a name="method-array-isassoc"></a>
+#### `Arr::isAssoc()` {#collection-method}
+
+The `Arr::isAssoc` returns `true` if the given array is an associative array. An array is considered "associative" if it doesn't have sequential numerical keys beginning with zero:
+
+    use Illuminate\Support\Arr;
+
+    $isAssoc = Arr::isAssoc(['product' => ['name' => 'Desk', 'price' => 100]]);
+
+    // true
+
+    $isAssoc = Arr::isAssoc([1, 2, 3]);
 
     // false
 
@@ -826,6 +846,17 @@ The `Str::after` method returns everything after the given value in a string:
 
     // ' my name'
 
+<a name="method-str-after-last"></a>
+#### `Str::afterLast()` {#collection-method}
+
+The `Str::afterLast` method returns everything after the last occurrence of the given value in a string:
+
+    use Illuminate\Support\Str;
+
+    $slice = Str::afterLast('App\Http\Controllers\Controller', '\\');
+
+    // 'Controller'
+
 <a name="method-str-before"></a>
 #### `Str::before()` {#collection-method}
 
@@ -836,6 +867,17 @@ The `Str::before` method returns everything before the given value in a string:
     $slice = Str::before('This is my name', 'my name');
 
     // 'This is '
+
+<a name="method-str-before-last"></a>
+#### `Str::beforeLast()` {#collection-method}
+
+The `Str::beforeLast` method returns everything before the last occurrence of the given value in a string:
+
+    use Illuminate\Support\Str;
+
+    $slice = Str::beforeLast('This is my name', 'is');
+
+    // 'This '
 
 <a name="method-camel-case"></a>
 #### `Str::camel()` {#collection-method}
@@ -867,6 +909,17 @@ You may also pass an array of values to determine if the given string contains a
 
     // true
 
+<a name="method-str-contains-all"></a>
+#### `Str::containsAll()` {#collection-method}
+
+The `Str::containsAll` method determines if the given string contains all array values:
+
+    use Illuminate\Support\Str;
+
+    $containsAll = Str::containsAll('This is my name', ['my', 'name']);
+
+    // true
+
 <a name="method-ends-with"></a>
 #### `Str::endsWith()` {#collection-method}
 
@@ -877,6 +930,19 @@ The `Str::endsWith` method determines if the given string ends with the given va
     $result = Str::endsWith('This is my name', 'name');
 
     // true
+
+
+You may also pass an array of values to determine if the given string ends with any of the given values:
+
+    use Illuminate\Support\Str;
+
+    $result = Str::endsWith('This is my name', ['name', 'foo']);
+
+    // true
+    
+    $result = Str::endsWith('This is my name', ['this', 'foo']);
+    
+    // false
 
 <a name="method-str-finish"></a>
 #### `Str::finish()` {#collection-method}
@@ -1111,6 +1177,17 @@ The `Str::uuid` method generates a UUID (version 4):
     use Illuminate\Support\Str;
 
     return (string) Str::uuid();
+
+<a name="method-str-words"></a>
+#### `Str::words()` {#collection-method}
+
+The `Str::words` method limits the number of words in a string:
+
+    use Illuminate\Support\Str;
+
+    return Str::words('Perfectly balanced, as all things should be.', 3, ' >>>');
+    
+    // Perfectly balanced, as >>>
 
 <a name="method-trans"></a>
 #### `trans()` {#collection-method}
@@ -1410,8 +1487,6 @@ The `dump` function dumps the given variables:
 
 If you want to stop executing the script after dumping the variables, use the [`dd`](#method-dd) function instead.
 
-> {tip} You may use Artisan's `dump-server` command to intercept all `dump` calls and display them in your console window instead of your browser.
-
 <a name="method-encrypt"></a>
 #### `encrypt()` {#collection-method}
 
@@ -1645,6 +1720,12 @@ If no Closure is passed to the `tap` function, you may call any method on the gi
         'name' => $name,
         'email' => $email,
     ]);
+
+To add a `tap` method to a class, you may add the `Illuminate\Support\Traits\Tappable` trait to the class. The `tap` method of this trait accepts a Closure as its only argument. The object instance itself will be passed to the Closure and then be returned by the `tap` method:
+
+    return $user->tap(function ($user) {
+        //
+    });
 
 <a name="method-throw-if"></a>
 #### `throw_if()` {#collection-method}

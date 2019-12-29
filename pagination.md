@@ -29,8 +29,8 @@ In this example, the only argument passed to the `paginate` method is the number
 
     namespace App\Http\Controllers;
 
-    use Illuminate\Support\Facades\DB;
     use App\Http\Controllers\Controller;
+    use Illuminate\Support\Facades\DB;
 
     class UserController extends Controller
     {
@@ -197,6 +197,7 @@ Method  |  Description
 `$results->getOptions()`  |  Get the paginator options.
 `$results->getUrlRange($start, $end)`  |  Create a range of pagination URLs.
 `$results->hasMorePages()`  |  Determine if there are enough items to split into multiple pages.
+`$results->items()`  |  Get the items for the current page.
 `$results->lastItem()`  |  Get the result number of the last item in the results.
 `$results->lastPage()`  |  Get the page number of the last available page. (Not available when using `simplePaginate`).
 `$results->nextPageUrl()`  |  Get the URL for the next page.
@@ -205,3 +206,5 @@ Method  |  Description
 `$results->previousPageUrl()`  |  Get the URL for the previous page.
 `$results->total()`  |  Determine the total number of matching items in the data store. (Not available when using `simplePaginate`).
 `$results->url($page)`  |  Get the URL for a given page number.
+`$results->getPageName()`  |  Get the query string variable used to store the page.
+`$results->setPageName($name)`  |  Set the query string variable used to store the page.

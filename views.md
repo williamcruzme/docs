@@ -79,6 +79,16 @@ Occasionally, you may need to share a piece of data with all views that are rend
     class AppServiceProvider extends ServiceProvider
     {
         /**
+         * Register any application services.
+         *
+         * @return void
+         */
+        public function register()
+        {
+            //
+        }
+
+        /**
          * Bootstrap any application services.
          *
          * @return void
@@ -86,16 +96,6 @@ Occasionally, you may need to share a piece of data with all views that are rend
         public function boot()
         {
             View::share('key', 'value');
-        }
-
-        /**
-         * Register the service provider.
-         *
-         * @return void
-         */
-        public function register()
-        {
-            //
         }
     }
 
@@ -116,7 +116,17 @@ For this example, let's register the view composers within a [service provider](
     class ViewServiceProvider extends ServiceProvider
     {
         /**
-         * Register bindings in the container.
+         * Register any application services.
+         *
+         * @return void
+         */
+        public function register()
+        {
+            //
+        }
+
+        /**
+         * Bootstrap any application services.
          *
          * @return void
          */
@@ -132,16 +142,6 @@ For this example, let's register the view composers within a [service provider](
                 //
             });
         }
-
-        /**
-         * Register the service provider.
-         *
-         * @return void
-         */
-        public function register()
-        {
-            //
-        }
     }
 
 > {note} Remember, if you create a new service provider to contain your view composer registrations, you will need to add the service provider to the `providers` array in the `config/app.php` configuration file.
@@ -152,8 +152,8 @@ Now that we have registered the composer, the `ProfileComposer@compose` method w
 
     namespace App\Http\View\Composers;
 
-    use Illuminate\View\View;
     use App\Repositories\UserRepository;
+    use Illuminate\View\View;
 
     class ProfileComposer
     {

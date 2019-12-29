@@ -38,13 +38,13 @@ Let's take a look at a basic service provider. Within any of your service provid
 
     namespace App\Providers;
 
-    use Riak\Connection;
     use Illuminate\Support\ServiceProvider;
+    use Riak\Connection;
 
     class RiakServiceProvider extends ServiceProvider
     {
         /**
-         * Register bindings in the container.
+         * Register any application services.
          *
          * @return void
          */
@@ -66,11 +66,12 @@ If your service provider registers many simple bindings, you may wish to use the
 
     namespace App\Providers;
 
-    use App\Contracts\ServerProvider;
     use App\Contracts\DowntimeNotifier;
-    use Illuminate\Support\ServiceProvider;
-    use App\Services\PingdomDowntimeNotifier;
+    use App\Contracts\ServerProvider;
     use App\Services\DigitalOceanServerProvider;
+    use App\Services\PingdomDowntimeNotifier;
+    use App\Services\ServerToolsProvider;
+    use Illuminate\Support\ServiceProvider;
 
     class AppServiceProvider extends ServiceProvider
     {
@@ -90,6 +91,7 @@ If your service provider registers many simple bindings, you may wish to use the
          */
         public $singletons = [
             DowntimeNotifier::class => PingdomDowntimeNotifier::class,
+            ServerToolsProvider::class => ServerToolsProvider::class,
         ];
     }
 
@@ -158,14 +160,14 @@ To defer the loading of a provider, implement the `\Illuminate\Contracts\Support
 
     namespace App\Providers;
 
-    use Riak\Connection;
-    use Illuminate\Support\ServiceProvider;
     use Illuminate\Contracts\Support\DeferrableProvider;
+    use Illuminate\Support\ServiceProvider;
+    use Riak\Connection;
 
     class RiakServiceProvider extends ServiceProvider implements DeferrableProvider
     {
         /**
-         * Register the service provider.
+         * Register any application services.
          *
          * @return void
          */

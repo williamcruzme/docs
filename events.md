@@ -75,9 +75,27 @@ You may even register listeners using the `*` as a wildcard parameter, allowing 
 <a name="event-discovery"></a>
 ### Event Discovery
 
-> {note} Event Discovery its only available for Laravel 5.8.9 or later.
+> {note} Event Discovery is available for Laravel 5.8.9 or later.
 
 Instead of registering events and listeners manually in the `$listen` array of the `EventServiceProvider`, you can enable automatic event discovery. When event discovery is enabled, Laravel will automatically find and register your events and listeners by scanning your application's `Listeners` directory. In addition, any explicitly defined events listed in the `EventServiceProvider` will still be registered.
+
+Laravel finds event listeners by scanning the listener classes using reflection. When Laravel finds any listener class method that begins with `handle`, Laravel will register those methods as event listeners for the event that is type-hinted in the method's signature:
+
+    use App\Events\PodcastProcessed;
+
+    class SendPodcastProcessedNotification
+    {
+        /**
+         * Handle the given event.
+         *
+         * @param  \App\Events\PodcastProcessed
+         * @return void
+         */
+        public function handle(PodcastProcessed $event)
+        {
+            //
+        }
+    }
 
 Event discovery is disabled by default, but you can enable it by overriding the `shouldDiscoverEvents` method of your application's `EventServiceProvider`:
 
@@ -238,6 +256,42 @@ If you would like to customize the queue connection, queue name, or queue delay 
         public $delay = 60;
     }
 
+#### Conditionally Queueing Listeners
+
+Sometimes, you may need to determine whether a listener should be queued based on some data that's only available at runtime. To accomplish this, a `shouldQueue` method may be added to a listener to determine whether the listener should be queued and executed synchronously:
+
+    <?php
+
+    namespace App\Listeners;
+
+    use App\Events\OrderPlaced;
+    use Illuminate\Contracts\Queue\ShouldQueue;
+
+    class RewardGiftCard implements ShouldQueue
+    {
+        /**
+         * Reward a gift card to the customer.
+         *
+         * @param  \App\Events\OrderPlaced  $event
+         * @return void
+         */
+        public function handle(OrderPlaced $event)
+        {
+            //
+        }
+
+        /**
+         * Determine whether the listener should be queued.
+         *
+         * @param  \App\Events\OrderPlaced  $event
+         * @return bool
+         */
+        public function shouldQueue(OrderPlaced $event)
+        {
+            return $event->order->subtotal >= 5000;
+        }
+    }
+
 <a name="manually-accessing-the-queue"></a>
 ### Manually Accessing The Queue
 
@@ -248,8 +302,8 @@ If you need to manually access the listener's underlying queue job's `delete` an
     namespace App\Listeners;
 
     use App\Events\OrderShipped;
-    use Illuminate\Queue\InteractsWithQueue;
     use Illuminate\Contracts\Queue\ShouldQueue;
+    use Illuminate\Queue\InteractsWithQueue;
 
     class SendShipmentNotification implements ShouldQueue
     {
@@ -279,8 +333,8 @@ Sometimes your queued event listeners may fail. If queued listener exceeds the m
     namespace App\Listeners;
 
     use App\Events\OrderShipped;
-    use Illuminate\Queue\InteractsWithQueue;
     use Illuminate\Contracts\Queue\ShouldQueue;
+    use Illuminate\Queue\InteractsWithQueue;
 
     class SendShipmentNotification implements ShouldQueue
     {
@@ -319,9 +373,9 @@ To dispatch an event, you may pass an instance of the event to the `event` helpe
 
     namespace App\Http\Controllers;
 
-    use App\Order;
     use App\Events\OrderShipped;
     use App\Http\Controllers\Controller;
+    use App\Order;
 
     class OrderController extends Controller
     {

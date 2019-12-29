@@ -5,6 +5,10 @@
     - [Extending Collections](#extending-collections)
 - [Available Methods](#available-methods)
 - [Higher Order Messages](#higher-order-messages)
+- [Lazy Collections](#lazy-collections)
+    - [Introduction](#lazy-collection-introduction)
+    - [The Enumerable Contract](#the-enumerable-contract)
+    - [Lazy Collection Methods](#lazy-collection-methods)
 
 <a name="introduction"></a>
 ## Introduction
@@ -34,6 +38,7 @@ As mentioned above, the `collect` helper returns a new `Illuminate\Support\Colle
 
 Collections are "macroable", which allows you to add additional methods to the `Collection` class at run time. For example, the following code adds a `toUpper` method to the `Collection` class:
 
+    use Illuminate\Support\Collection;
     use Illuminate\Support\Str;
 
     Collection::macro('toUpper', function () {
@@ -73,6 +78,7 @@ For the remainder of this documentation, we'll discuss each method available on 
 [avg](#method-avg)
 [chunk](#method-chunk)
 [collapse](#method-collapse)
+[collect](#method-collect)
 [combine](#method-combine)
 [concat](#method-concat)
 [contains](#method-contains)
@@ -86,6 +92,7 @@ For the remainder of this documentation, we'll discuss each method available on 
 [diffKeys](#method-diffkeys)
 [dump](#method-dump)
 [duplicates](#method-duplicates)
+[duplicatesStrict](#method-duplicatesstrict)
 [each](#method-each)
 [eachSpread](#method-eachspread)
 [every](#method-every)
@@ -120,6 +127,7 @@ For the remainder of this documentation, we'll discuss each method available on 
 [max](#method-max)
 [median](#method-median)
 [merge](#method-merge)
+[mergeRecursive](#method-mergerecursive)
 [min](#method-min)
 [mode](#method-mode)
 [nth](#method-nth)
@@ -136,15 +144,19 @@ For the remainder of this documentation, we'll discuss each method available on 
 [random](#method-random)
 [reduce](#method-reduce)
 [reject](#method-reject)
+[replace](#method-replace)
+[replaceRecursive](#method-replacerecursive)
 [reverse](#method-reverse)
 [search](#method-search)
 [shift](#method-shift)
 [shuffle](#method-shuffle)
+[skip](#method-skip)
 [slice](#method-slice)
 [some](#method-some)
 [sort](#method-sort)
 [sortBy](#method-sortby)
 [sortByDesc](#method-sortbydesc)
+[sortDesc](#method-sortdesc)
 [sortKeys](#method-sortkeys)
 [sortKeysDesc](#method-sortkeysdesc)
 [splice](#method-splice)
@@ -270,6 +282,39 @@ The `combine` method combines the values of the collection, as keys, with the va
 
     // ['name' => 'George', 'age' => 29]
 
+<a name="method-collect"></a>
+#### `collect()` {#collection-method}
+
+The `collect` method returns a new `Collection` instance with the items currently in the collection:
+
+    $collectionA = collect([1, 2, 3]);
+
+    $collectionB = $collectionA->collect();
+
+    $collectionB->all();
+
+    // [1, 2, 3]
+
+The `collect` method is primarily useful for converting [lazy collections](#lazy-collections) into standard `Collection` instances:
+
+    $lazyCollection = LazyCollection::make(function () {
+        yield 1;
+        yield 2;
+        yield 3;
+    });
+
+    $collection = $lazyCollection->collect();
+
+    get_class($collection);
+
+    // 'Illuminate\Support\Collection'
+
+    $collection->all();
+
+    // [1, 2, 3]
+
+> {tip} The `collect` method is especially useful when you have an instance of `Enumerable` and need a non-lazy collection instance. Since `collect()` is part of the `Enumerable` contract, you can safely use it to get a `Collection` instance.
+
 <a name="method-concat"></a>
 #### `concat()` {#collection-method}
 
@@ -340,7 +385,7 @@ The `count` method returns the total number of items in the collection:
 <a name="method-countBy"></a>
 #### `countBy()` {#collection-method}
 
-The `countBy` method counts the occurences of values in the collection. By default, the method counts the occurrences of every element:
+The `countBy` method counts the occurrences of values in the collection. By default, the method counts the occurrences of every element:
 
     $collection = collect([1, 2, 2, 2, 3]);
 
@@ -449,7 +494,7 @@ The `diffAssoc` method compares the collection against another collection or a p
         'color' => 'yellow',
         'type' => 'fruit',
         'remain' => 3,
-        'used' => 6
+        'used' => 6,
     ]);
 
     $diff->all();
@@ -503,13 +548,30 @@ If you want to stop executing the script after dumping the collection, use the [
 <a name="method-duplicates"></a>
 #### `duplicates()` {#collection-method}
 
-the `duplicates` method retrieves and returns duplicate values from the collection:
+The `duplicates` method retrieves and returns duplicate values from the collection:
 
     $collection = collect(['a', 'b', 'a', 'c', 'b']);
 
     $collection->duplicates();
 
-    // [ 2 => 'a', 4 => 'b' ]
+    // [2 => 'a', 4 => 'b']
+
+If the collection contains arrays or objects, you can pass the key of the attributes that you wish to check for duplicate values:
+
+    $employees = collect([
+        ['email' => 'abigail@example.com', 'position' => 'Developer'],
+        ['email' => 'james@example.com', 'position' => 'Designer'],
+        ['email' => 'victoria@example.com', 'position' => 'Developer'],
+    ])
+
+    $employees->duplicates('position');
+
+    // [2 => 'Developer']
+
+<a name="method-duplicatesstrict"></a>
+#### `duplicatesStrict()` {#collection-method}
+
+This method has the same signature as the [`duplicates`](#method-duplicates) method; however, all values are compared using "strict" comparisons.
 
 <a name="method-each"></a>
 #### `each()` {#collection-method}
@@ -1218,6 +1280,19 @@ If the given items's keys are numeric, the values will be appended to the end of
 
     // ['Desk', 'Chair', 'Bookcase', 'Door']
 
+<a name="method-mergerecursive"></a>
+#### `mergeRecursive()` {#collection-method}
+
+The `mergeRecursive` method merges the given array or collection recursively with the original collection. If a string key in the given items matches a string key in the original collection, then the values for these keys are merged together into an array, and this is done recursively:
+
+    $collection = collect(['product_id' => 1, 'price' => 100]);
+
+    $merged = $collection->mergeRecursive(['product_id' => 2, 'price' => 200, 'discount' => false]);
+
+    $merged->all();
+
+    // ['product_id' => [1, 2], 'price' => [100, 200], 'discount' => false]
+
 <a name="method-min"></a>
 #### `min()` {#collection-method}
 
@@ -1506,6 +1581,32 @@ The `reject` method filters the collection using the given callback. The callbac
 
 For the inverse of the `reject` method, see the [`filter`](#method-filter) method.
 
+<a name="method-replace"></a>
+#### `replace()` {#collection-method}
+
+The `replace` method behaves similarly to `merge`; however, in addition to overwriting matching items with string keys, the `replace` method will also overwrite items in the collection that have matching numeric keys:
+
+    $collection = collect(['Taylor', 'Abigail', 'James']);
+
+    $replaced = $collection->replace([1 => 'Victoria', 3 => 'Finn']);
+
+    $replaced->all();
+
+    // ['Taylor', 'Victoria', 'James', 'Finn']
+
+<a name="method-replacerecursive"></a>
+#### `replaceRecursive()` {#collection-method}
+
+This method works like `replace`, but it will recur into arrays and apply the same replacement process to the inner values:
+
+    $collection = collect(['Taylor', 'Abigail', ['James', 'Victoria', 'Finn']]);
+
+    $replaced = $collection->replaceRecursive(['Charlie', 2 => [1 => 'King']]);
+
+    $replaced->all();
+
+    // ['Charlie', 'Abigail', ['James', 'King', 'Finn']]
+
 <a name="method-reverse"></a>
 #### `reverse()` {#collection-method}
 
@@ -1579,6 +1680,19 @@ The `shuffle` method randomly shuffles the items in the collection:
     $shuffled->all();
 
     // [3, 2, 5, 1, 4] - (generated randomly)
+
+<a name="method-skip"></a>
+#### `skip()` {#collection-method}
+
+The `skip` method returns a new collection, without the first given amount of items:
+
+    $collection = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+    $collection = $collection->skip(4);
+
+    $collection->all();
+
+    // [5, 6, 7, 8, 9, 10]
 
 <a name="method-slice"></a>
 #### `slice()` {#collection-method}
@@ -1674,6 +1788,19 @@ You can also pass your own callback to determine how to sort the collection valu
 #### `sortByDesc()` {#collection-method}
 
 This method has the same signature as the [`sortBy`](#method-sortby) method, but will sort the collection in the opposite order.
+
+<a name="method-sortdesc"></a>
+#### `sortDesc()` {#collection-method}
+
+This method has the same signature as the [`sort`](#method-sort) method, but will sort the collection in the opposite order:
+
+    $collection = collect([5, 3, 1, 2, 4]);
+
+    $sorted = $collection->sortDesc();
+
+    $sorted->values()->all();
+
+    // [5, 4, 3, 2, 1]
 
 <a name="method-sortkeys"></a>
 #### `sortKeys()` {#collection-method}
@@ -2174,6 +2301,25 @@ The `where` method filters the collection by a given key / value pair:
 
 The `where` method uses "loose" comparisons when checking item values, meaning a string with an integer value will be considered equal to an integer of the same value. Use the [`whereStrict`](#method-wherestrict) method to filter using "strict" comparisons.
 
+Optionally, you may pass a comparison operator as the second parameter.
+
+    $collection = collect([
+        ['name' => 'Jim', 'deleted_at' => '2019-01-01 00:00:00'],
+        ['name' => 'Sally', 'deleted_at' => '2019-01-02 00:00:00'],
+        ['name' => 'Sue', 'deleted_at' => null],
+    ]);
+
+    $filtered = $collection->where('deleted_at', '!=', null);
+
+    $filtered->all();
+
+    /*
+        [
+            ['name' => 'Jim', 'deleted_at' => '2019-01-01 00:00:00'],
+            ['name' => 'Sally', 'deleted_at' => '2019-01-02 00:00:00'],
+        ]
+    */
+
 <a name="method-wherestrict"></a>
 #### `whereStrict()` {#collection-method}
 
@@ -2239,13 +2385,20 @@ This method has the same signature as the [`whereIn`](#method-wherein) method; h
 
 The `whereInstanceOf` method filters the collection by a given class type:
 
+    use App\User;
+    use App\Post;
+
     $collection = collect([
         new User,
         new User,
         new Post,
     ]);
 
-    return $collection->whereInstanceOf(User::class);
+    $filtered = $collection->whereInstanceOf(User::class);
+
+    $filtered->all();
+
+    // [App\User, App\User]
 
 <a name="method-wherenotbetween"></a>
 #### `whereNotBetween()` {#collection-method}
@@ -2353,3 +2506,219 @@ Likewise, we can use the `sum` higher order message to gather the total number o
     $users = User::where('group', 'Development')->get();
 
     return $users->sum->votes;
+
+<a name="lazy-collections"></a>
+## Lazy Collections
+
+<a name="lazy-collection-introduction"></a>
+### Introduction
+
+> {note} Before learning more about Laravel's lazy collections, take some time to familiarize yourself with [PHP generators](https://www.php.net/manual/en/language.generators.overview.php).
+
+To supplement the already powerful `Collection` class, the `LazyCollection` class leverages PHP's [generators](https://www.php.net/manual/en/language.generators.overview.php) to allow you to work with very large datasets while keeping memory usage low.
+
+For example, imagine your application needs to process a multi-gigabyte log file while taking advantage of Laravel's collection methods to parse the logs. Instead of reading the entire file into memory at once, lazy collections may be used to keep only a small part of the file in memory at a given time:
+
+    use App\LogEntry;
+    use Illuminate\Support\LazyCollection;
+
+    LazyCollection::make(function () {
+        $handle = fopen('log.txt', 'r');
+
+        while (($line = fgets($handle)) !== false) {
+            yield $line;
+        }
+    })->chunk(4)->map(function ($lines) {
+        return LogEntry::fromLines($lines);
+    })->each(function (LogEntry $logEntry) {
+        // Process the log entry...
+    });
+
+Or, imagine you need to iterate through 10,000 Eloquent models. When using traditional Laravel collections, all 10,000 Eloquent models must be loaded into memory at the same time:
+
+    $users = App\User::all()->filter(function ($user) {
+        return $user->id > 500;
+    });
+
+However, the query builder's `cursor` method returns a `LazyCollection` instance. This allows you to still only run a single query against the database but also only keep one Eloquent model loaded in memory at a time. In this example, the `filter` callback is not executed until we actually iterate over each user individually, allowing for a drastic reduction in memory usage:
+
+    $users = App\User::cursor()->filter(function ($user) {
+        return $user->id > 500;
+    });
+
+    foreach ($users as $user) {
+        echo $user->id;
+    }
+
+<a name="creating-lazy-collections"></a>
+### Creating Lazy Collections
+
+To create a lazy collection instance, you should pass a PHP generator function to the collection's `make` method:
+
+    use Illuminate\Support\LazyCollection;
+
+    LazyCollection::make(function () {
+        $handle = fopen('log.txt', 'r');
+
+        while (($line = fgets($handle)) !== false) {
+            yield $line;
+        }
+    });
+
+<a name="the-enumerable-contract"></a>
+### The Enumerable Contract
+
+Almost all methods available on the `Collection` class are also available on the `LazyCollection` class. Both of these classes implement the `Illuminate\Support\Enumerable` contract, which defines the following methods:
+
+<div id="collection-method-list" markdown="1">
+
+[all](#method-all)
+[average](#method-average)
+[avg](#method-avg)
+[chunk](#method-chunk)
+[collapse](#method-collapse)
+[collect](#method-collect)
+[combine](#method-combine)
+[concat](#method-concat)
+[contains](#method-contains)
+[containsStrict](#method-containsstrict)
+[count](#method-count)
+[countBy](#method-countBy)
+[crossJoin](#method-crossjoin)
+[dd](#method-dd)
+[diff](#method-diff)
+[diffAssoc](#method-diffassoc)
+[diffKeys](#method-diffkeys)
+[dump](#method-dump)
+[duplicates](#method-duplicates)
+[duplicatesStrict](#method-duplicatesstrict)
+[each](#method-each)
+[eachSpread](#method-eachspread)
+[every](#method-every)
+[except](#method-except)
+[filter](#method-filter)
+[first](#method-first)
+[firstWhere](#method-first-where)
+[flatMap](#method-flatmap)
+[flatten](#method-flatten)
+[flip](#method-flip)
+[forPage](#method-forpage)
+[get](#method-get)
+[groupBy](#method-groupby)
+[has](#method-has)
+[implode](#method-implode)
+[intersect](#method-intersect)
+[intersectByKeys](#method-intersectbykeys)
+[isEmpty](#method-isempty)
+[isNotEmpty](#method-isnotempty)
+[join](#method-join)
+[keyBy](#method-keyby)
+[keys](#method-keys)
+[last](#method-last)
+[macro](#method-macro)
+[make](#method-make)
+[map](#method-map)
+[mapInto](#method-mapinto)
+[mapSpread](#method-mapspread)
+[mapToGroups](#method-maptogroups)
+[mapWithKeys](#method-mapwithkeys)
+[max](#method-max)
+[median](#method-median)
+[merge](#method-merge)
+[mergeRecursive](#method-mergerecursive)
+[min](#method-min)
+[mode](#method-mode)
+[nth](#method-nth)
+[only](#method-only)
+[pad](#method-pad)
+[partition](#method-partition)
+[pipe](#method-pipe)
+[pluck](#method-pluck)
+[random](#method-random)
+[reduce](#method-reduce)
+[reject](#method-reject)
+[replace](#method-replace)
+[replaceRecursive](#method-replacerecursive)
+[reverse](#method-reverse)
+[search](#method-search)
+[shuffle](#method-shuffle)
+[skip](#method-skip)
+[slice](#method-slice)
+[some](#method-some)
+[sort](#method-sort)
+[sortBy](#method-sortby)
+[sortByDesc](#method-sortbydesc)
+[sortKeys](#method-sortkeys)
+[sortKeysDesc](#method-sortkeysdesc)
+[split](#method-split)
+[sum](#method-sum)
+[take](#method-take)
+[tap](#method-tap)
+[times](#method-times)
+[toArray](#method-toarray)
+[toJson](#method-tojson)
+[union](#method-union)
+[unique](#method-unique)
+[uniqueStrict](#method-uniquestrict)
+[unless](#method-unless)
+[unlessEmpty](#method-unlessempty)
+[unlessNotEmpty](#method-unlessnotempty)
+[unwrap](#method-unwrap)
+[values](#method-values)
+[when](#method-when)
+[whenEmpty](#method-whenempty)
+[whenNotEmpty](#method-whennotempty)
+[where](#method-where)
+[whereStrict](#method-wherestrict)
+[whereBetween](#method-wherebetween)
+[whereIn](#method-wherein)
+[whereInStrict](#method-whereinstrict)
+[whereInstanceOf](#method-whereinstanceof)
+[whereNotBetween](#method-wherenotbetween)
+[whereNotIn](#method-wherenotin)
+[whereNotInStrict](#method-wherenotinstrict)
+[wrap](#method-wrap)
+[zip](#method-zip)
+
+</div>
+
+> {note} Methods that mutate the collection (such as `shift`, `pop`, `prepend` etc.) are _not_ available on the `LazyCollection` class.
+
+<a name="lazy-collection-methods"></a>
+### Lazy Collection Methods
+
+In addition to the methods defined in the `Enumerable` contract, the `LazyCollection` class contains the following methods:
+
+<a name="method-tapEach"></a>
+#### `tapEach()` {#collection-method}
+
+While the `each` method calls the given callback for each item in the collection right away, the `tapEach` method only calls the given callback as the items are being pulled out of the list one by one:
+
+    $lazyCollection = LazyCollection::times(INF)->tapEach(function ($value) {
+        dump($value);
+    });
+
+    // Nothing has been dumped so far...
+
+    $array = $lazyCollection->take(3)->all();
+
+    // 1
+    // 2
+    // 3
+
+<a name="method-remember"></a>
+#### `remember()` {#collection-method}
+
+The `remember` method returns a new lazy collection that will remember any values that have already been enumerated and will not retrieve them again when the collection is enumerated again:
+
+    $users = User::cursor()->remember();
+
+    // No query has been executed yet...
+
+    $users->take(5)->all();
+
+    // The query has been executed and the first 5 users have been hydrated from the database...
+
+    $users->take(20)->all();
+
+    // First 5 users come from the collection's cache... The rest are hydrated from the database...

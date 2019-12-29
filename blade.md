@@ -17,6 +17,7 @@
 - [Forms](#forms)
     - [CSRF Field](#csrf-field)
     - [Method Field](#method-field)
+    - [Validation Errors](#validation-errors)
 - [Including Sub-Views](#including-sub-views)
     - [Rendering Views For Collections](#rendering-views-for-collections)
 - [Stacks](#stacks)
@@ -83,6 +84,10 @@ In this example, the `sidebar` section is utilizing the `@@parent` directive to 
 
 > {tip} Contrary to the previous example, this `sidebar` section ends with `@endsection` instead of `@show`. The `@endsection` directive will only define a section while `@show` will define and **immediately yield** the section.
 
+The `@yield` directive also accepts a default value as its second parameter. This value will be rendered if the section being yielded is undefined:
+
+    @yield('content', View::make('view.name'))
+
 Blade views may be returned from routes using the global `view` helper:
 
     Route::get('blade', function () {
@@ -105,6 +110,12 @@ The `{{ $slot }}` variable will contain the content we wish to inject into the c
     @component('alert')
         <strong>Whoops!</strong> Something went wrong!
     @endcomponent
+
+To instruct Laravel to load the first view that exists from a given array of possible views for the component, you may use the `componentFirst` directive:
+
+    @componentFirst(['custom.alert', 'alert'])
+        <strong>Whoops!</strong> Something went wrong!
+    @endcomponentfirst
 
 Sometimes it is helpful to define multiple slots for a component. Let's modify our alert component to allow for the injection of a "title". Named slots may be displayed by "echoing" the variable that matches their name:
 
@@ -189,11 +200,15 @@ Sometimes you may pass an array to your view with the intention of rendering it 
         var app = <?php echo json_encode($array); ?>;
     </script>
 
-However, instead of manually calling `json_encode`, you may use the `@json` Blade directive:
+However, instead of manually calling `json_encode`, you may use the `@json` Blade directive. The `@json` directive accepts the same arguments as PHP's `json_encode` function:
 
     <script>
         var app = @json($array);
+
+        var app = @json($array, JSON_PRETTY_PRINT);
     </script>
+
+> {note} You should only use the `@json` directive to render existing variables as JSON. The Blade templating is based on regular expressions and attempts to pass a complex expression to the directive may cause unexpected failures.
 
 The `@json` directive is also useful for seeding Vue components or `data-*` attributes:
 
@@ -466,6 +481,33 @@ Since HTML forms can't make `PUT`, `PATCH`, or `DELETE` requests, you will need 
         ...
     </form>
 
+<a name="validation-errors"></a>
+### Validation Errors
+
+The `@error` directive may be used to quickly check if [validation error messages](/docs/{{version}}/validation#quick-displaying-the-validation-errors) exist for a given attribute. Within an `@error` directive, you may echo the `$message` variable to display the error message:
+
+    <!-- /resources/views/post/create.blade.php -->
+
+    <label for="title">Post Title</label>
+
+    <input id="title" type="text" class="@error('title') is-invalid @enderror">
+
+    @error('title')
+        <div class="alert alert-danger">{{ $message }}</div>
+    @enderror
+
+You may pass [the name of a specific error bag](/docs/{{version}}/validation#named-error-bags) as the second parameter to the `@error` directive to retrieve validation error messages on pages containing multiple forms:
+
+    <!-- /resources/views/auth.blade.php -->
+
+    <label for="email">Email address</label>
+
+    <input id="email" type="email" class="@error('email', 'login') is-invalid @enderror">
+
+    @error('email', 'login')
+        <div class="alert alert-danger">{{ $message }}</div>
+    @enderror
+
 <a name="including-sub-views"></a>
 ## Including Sub-Views
 
@@ -487,9 +529,13 @@ If you attempt to `@include` a view which does not exist, Laravel will throw an 
 
     @includeIf('view.name', ['some' => 'data'])
 
-If you would like to `@include` a view depending on a given boolean condition, you may use the `@includeWhen` directive:
+If you would like to `@include` a view if a given boolean expression evaluates to `true`, you may use the `@includeWhen` directive:
 
     @includeWhen($boolean, 'view.name', ['some' => 'data'])
+
+If you would like to `@include` a view if a given boolean expression evaluates to `false`, you may use the `@includeUnless` directive:
+
+    @includeUnless($boolean, 'view.name', ['some' => 'data'])
 
 To include the first view that exists from a given array of views, you may use the `includeFirst` directive:
 
@@ -585,7 +631,17 @@ The following example creates a `@datetime($var)` directive which formats a give
     class AppServiceProvider extends ServiceProvider
     {
         /**
-         * Perform post-registration booting of services.
+         * Register any application services.
+         *
+         * @return void
+         */
+        public function register()
+        {
+            //
+        }
+
+        /**
+         * Bootstrap any application services.
          *
          * @return void
          */
@@ -594,16 +650,6 @@ The following example creates a `@datetime($var)` directive which formats a give
             Blade::directive('datetime', function ($expression) {
                 return "<?php echo ($expression)->format('m/d/Y H:i'); ?>";
             });
-        }
-
-        /**
-         * Register bindings in the container.
-         *
-         * @return void
-         */
-        public function register()
-        {
-            //
         }
     }
 
@@ -621,7 +667,7 @@ Programming a custom directive is sometimes more complex than necessary when def
     use Illuminate\Support\Facades\Blade;
 
     /**
-     * Perform post-registration booting of services.
+     * Bootstrap any application services.
      *
      * @return void
      */
@@ -640,4 +686,8 @@ Once the custom conditional has been defined, we can easily use it on our templa
         // The application is in the testing environment...
     @else
         // The application is not in the local or testing environment...
+    @endenv
+
+    @unlessenv('production')
+        // The application is not in the production environment...
     @endenv

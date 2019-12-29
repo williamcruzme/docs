@@ -2,7 +2,7 @@
 
 - [Introduction](#introduction)
 - [Configuration](#configuration)
-    - [Database Migrations](#database-preparation)
+    - [Database Preparation](#database-preparation)
 - [Generating Tokens](#generating-tokens)
     - [Hashing Tokens](#hashing-tokens)
 - [Protecting Routes](#protecting-routes)
@@ -32,13 +32,15 @@ Before using the `token` driver, you will need to [create a migration](/docs/{{v
 
 Once the migration has been created, run the `migrate` Artisan command.
 
+> {tip} If you choose to use a different column name, be sure to update your API's `storage_key` configuration option within the `config/auth.php` configuration file.
+
 <a name="generating-tokens"></a>
 ## Generating Tokens
 
-Once the `api_token` column has been added to your `users` table, you are ready to assign random API tokens to each user that registers with your application. You should assign these tokens when a `User` model is created for the user during registration. When using the [authentication scaffolding](/docs/{{version}}/authentication#authentication-quickstart) provided by the `make:auth` Artisan command, this may be done in the `create` method of the `RegisterController`:
+Once the `api_token` column has been added to your `users` table, you are ready to assign random API tokens to each user that registers with your application. You should assign these tokens when a `User` model is created for the user during registration. When using the [authentication scaffolding](/docs/{{version}}/authentication#authentication-quickstart) provided by the `laravel/ui` Composer package, this may be done in the `create` method of the `RegisterController`:
 
-    use Illuminate\Support\Str;
     use Illuminate\Support\Facades\Hash;
+    use Illuminate\Support\Str;
 
     /**
      * Create a new user instance after a valid registration.
@@ -48,11 +50,11 @@ Once the `api_token` column has been added to your `users` table, you are ready 
      */
     protected function create(array $data)
     {
-        return User::create([
+        return User::forceCreate([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'api_token' => Str::random(60),
+            'api_token' => Str::random(80),
         ]);
     }
 
@@ -77,8 +79,8 @@ For example, a controller method that initializes / refreshes the token for a gi
 
     namespace App\Http\Controllers;
 
-    use Illuminate\Support\Str;
     use Illuminate\Http\Request;
+    use Illuminate\Support\Str;
 
     class ApiTokenController extends Controller
     {
@@ -90,7 +92,7 @@ For example, a controller method that initializes / refreshes the token for a gi
          */
         public function update(Request $request)
         {
-            $token = Str::random(60);
+            $token = Str::random(80);
 
             $request->user()->forceFill([
                 'api_token' => hash('sha256', $token),

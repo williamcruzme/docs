@@ -68,7 +68,7 @@ First, let's review some code that is tightly coupled to a cache implementation.
          */
         public function find($id)
         {
-            if ($this->cache->has($id))    {
+            if ($this->cache->has($id)) {
                 //
             }
         }
@@ -127,8 +127,8 @@ For example, take a look at this event listener:
 
     namespace App\Listeners;
 
-    use App\User;
     use App\Events\OrderWasPlaced;
+    use App\User;
     use Illuminate\Contracts\Redis\Factory;
 
     class CacheOrderInformation

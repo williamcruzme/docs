@@ -25,6 +25,12 @@ To convert a model and its loaded [relationships](/docs/{{version}}/eloquent-rel
 
     return $user->toArray();
 
+To convert only a model's attributes to an array, use the `attributesToArray` method:
+
+    $user = App\User::first();
+
+    return $user->attributesToArray();
+
 You may also convert entire [collections](/docs/{{version}}/eloquent-collections) of models to arrays:
 
     $users = App\User::all();
@@ -129,7 +135,7 @@ Occasionally, when casting models to an array or JSON, you may wish to add attri
          */
         public function getIsAdminAttribute()
         {
-            return $this->attributes['admin'] == 'yes';
+            return $this->attributes['admin'] === 'yes';
         }
     }
 
@@ -164,6 +170,21 @@ You may instruct a single model instance to append attributes using the `append`
 <a name="date-serialization"></a>
 ## Date Serialization
 
+#### Customizing The Default Date Format
+
+You may customize the default serialization format by overriding the `serializeDate` method:
+
+    /**
+     * Prepare a date for array / JSON serialization.
+     *
+     * @param  \DateTimeInterface  $date
+     * @return string
+     */
+    protected function serializeDate(DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d');
+    }
+
 #### Customizing The Date Format Per Attribute
 
 You may customize the serialization format of individual Eloquent date attributes by specifying the date format in the [cast declaration](/docs/{{version}}/eloquent-mutators#attribute-casting):
@@ -172,39 +193,3 @@ You may customize the serialization format of individual Eloquent date attribute
         'birthday' => 'date:Y-m-d',
         'joined_at' => 'datetime:Y-m-d H:00',
     ];
-
-#### Global Customization Via Carbon
-
-Laravel extends the [Carbon](https://github.com/briannesbitt/Carbon) date library in order to provide convenient customization of Carbon's JSON serialization format. To customize how all Carbon dates throughout your application are serialized, use the `Carbon::serializeUsing` method. The `serializeUsing` method accepts a Closure which returns a string representation of the date for JSON serialization:
-
-    <?php
-
-    namespace App\Providers;
-
-    use Illuminate\Support\Carbon;
-    use Illuminate\Support\ServiceProvider;
-
-    class AppServiceProvider extends ServiceProvider
-    {
-        /**
-         * Perform post-registration booting of services.
-         *
-         * @return void
-         */
-        public function boot()
-        {
-            Carbon::serializeUsing(function ($carbon) {
-                return $carbon->format('U');
-            });
-        }
-
-        /**
-         * Register bindings in the container.
-         *
-         * @return void
-         */
-        public function register()
-        {
-            //
-        }
-    }

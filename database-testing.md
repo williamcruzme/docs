@@ -10,6 +10,7 @@
     - [Creating Models](#creating-models)
     - [Persisting Models](#persisting-models)
     - [Relationships](#relationships)
+- [Using Seeds](#using-seeds)
 - [Available Assertions](#available-assertions)
 
 <a name="introduction"></a>
@@ -22,7 +23,7 @@ Laravel provides a variety of helpful tools to make it easier to test your datab
         // Make call to application...
 
         $this->assertDatabaseHas('users', [
-            'email' => 'sally@example.com'
+            'email' => 'sally@example.com',
         ]);
     }
 
@@ -52,9 +53,9 @@ It is often useful to reset your database after each test so that data from a pr
 
     namespace Tests\Feature;
 
-    use Tests\TestCase;
     use Illuminate\Foundation\Testing\RefreshDatabase;
     use Illuminate\Foundation\Testing\WithoutMiddleware;
+    use Tests\TestCase;
 
     class ExampleTest extends TestCase
     {
@@ -78,8 +79,8 @@ It is often useful to reset your database after each test so that data from a pr
 
 When testing, you may need to insert a few records into your database before executing your test. Instead of manually specifying the value of each column when you create this test data, Laravel allows you to define a default set of attributes for each of your [Eloquent models](/docs/{{version}}/eloquent) using model factories. To get started, take a look at the `database/factories/UserFactory.php` file in your application. Out of the box, this file contains one factory definition:
 
-    use Illuminate\Support\Str;
     use Faker\Generator as Faker;
+    use Illuminate\Support\Str;
 
     $factory->define(App\User::class, function (Faker $faker) {
         return [
@@ -173,6 +174,8 @@ If you would like to override some of the default values of your models, you may
         'name' => 'Abigail',
     ]);
 
+> {tip} [Mass assignment protection](/docs/{{version}}/eloquent#mass-assignment) is automatically disabled when creating models using factories.
+
 <a name="persisting-models"></a>
 ### Persisting Models
 
@@ -206,34 +209,71 @@ In this example, we'll attach a relation to some created models. When using the 
                     $user->posts()->save(factory(App\Post::class)->make());
                 });
 
+You may use the `createMany` method to create multiple related models:
+
+    $user->posts()->createMany(
+        factory(App\Post::class, 3)->make()->toArray()
+    );
+
 #### Relations & Attribute Closures
 
-You may also attach relationships to models using Closure attributes in your factory definitions. For example, if you would like to create a new `User` instance when creating a `Post`, you may do the following:
+You may also attach relationships to models in your factory definitions. For example, if you would like to create a new `User` instance when creating a `Post`, you may do the following:
 
     $factory->define(App\Post::class, function ($faker) {
         return [
             'title' => $faker->title,
             'content' => $faker->paragraph,
-            'user_id' => function () {
-                return factory(App\User::class)->create()->id;
-            }
+            'user_id' => factory(App\User::class),
         ];
     });
 
-These Closures also receive the evaluated attribute array of the factory that defines them:
+If the relationship depends on the factory that defines it you may provide a callback which accepts the evaluated attribute array:
 
     $factory->define(App\Post::class, function ($faker) {
         return [
             'title' => $faker->title,
             'content' => $faker->paragraph,
-            'user_id' => function () {
-                return factory(App\User::class)->create()->id;
-            },
+            'user_id' => factory(App\User::class),
             'user_type' => function (array $post) {
                 return App\User::find($post['user_id'])->type;
-            }
+            },
         ];
     });
+
+<a name="using-seeds"></a>
+## Using Seeds
+
+If you would like to use [database seeders](/docs/{{version}}/seeding) to populate your database during a test, you may use the `seed` method. By default, the `seed` method will return the `DatabaseSeeder`, which should execute all of your other seeders. Alternatively, you pass a specific seeder class name to the `seed` method:
+
+    <?php
+
+    namespace Tests\Feature;
+
+    use Illuminate\Foundation\Testing\RefreshDatabase;
+    use Illuminate\Foundation\Testing\WithoutMiddleware;
+    use OrderStatusesTableSeeder;
+    use Tests\TestCase;
+
+    class ExampleTest extends TestCase
+    {
+        use RefreshDatabase;
+
+        /**
+         * Test creating a new order.
+         *
+         * @return void
+         */
+        public function testCreatingANewOrder()
+        {
+            // Run the DatabaseSeeder...
+            $this->seed();
+
+            // Run a single seeder...
+            $this->seed(OrderStatusesTableSeeder::class);
+
+            // ...
+        }
+    }
 
 <a name="available-assertions"></a>
 ## Available Assertions
@@ -244,4 +284,18 @@ Method  | Description
 ------------- | -------------
 `$this->assertDatabaseHas($table, array $data);`  |  Assert that a table in the database contains the given data.
 `$this->assertDatabaseMissing($table, array $data);`  |  Assert that a table in the database does not contain the given data.
+`$this->assertDeleted($table, array $data);`  |  Assert that the given record has been deleted.
 `$this->assertSoftDeleted($table, array $data);`  |  Assert that the given record has been soft deleted.
+
+For convenience, you may pass a model to the `assertDeleted` and `assertSoftDeleted` helpers to assert the record was deleted or soft deleted, respectively, from the database based on the model's primary key.
+
+For example, if you are using a model factory in your test, you may pass this model to one of these helpers to test your application properly deleted the record from the database:
+
+    public function testDatabase()
+    {
+        $user = factory(App\User::class)->create();
+  
+        // Make call to application...
+  
+        $this->assertDeleted($user);
+    }

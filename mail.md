@@ -25,18 +25,18 @@
 <a name="introduction"></a>
 ## Introduction
 
-Laravel provides a clean, simple API over the popular [SwiftMailer](https://swiftmailer.symfony.com/) library with drivers for SMTP, Mailgun, Postmark, SparkPost, Amazon SES, and `sendmail`, allowing you to quickly get started sending mail through a local or cloud based service of your choice.
+Laravel provides a clean, simple API over the popular [SwiftMailer](https://swiftmailer.symfony.com/) library with drivers for SMTP, Mailgun, Postmark, Amazon SES, and `sendmail`, allowing you to quickly get started sending mail through a local or cloud based service of your choice.
 
 <a name="driver-prerequisites"></a>
 ### Driver Prerequisites
 
-The API based drivers such as Mailgun, SparkPost, and Postmark are often simpler and faster than SMTP servers. If possible, you should use one of these drivers. All of the API drivers require the Guzzle HTTP library, which may be installed via the Composer package manager:
+The API based drivers such as Mailgun and Postmark are often simpler and faster than SMTP servers. If possible, you should use one of these drivers. All of the API drivers require the Guzzle HTTP library, which may be installed via the Composer package manager:
 
     composer require guzzlehttp/guzzle
 
 #### Mailgun Driver
 
-To use the Mailgun driver, first install Guzzle, then set the `driver` option in your `config/mail.php` configuration file to `mailgun`. Next, verify that your `config/services.php` configuration file cogntains the following options:
+To use the Mailgun driver, first install Guzzle, then set the `driver` option in your `config/mail.php` configuration file to `mailgun`. Next, verify that your `config/services.php` configuration file contains the following options:
 
     'mailgun' => [
         'domain' => 'your-mailgun-domain',
@@ -61,23 +61,6 @@ Next, install Guzzle and set the `driver` option in your `config/mail.php` confi
 
     'postmark' => [
         'token' => 'your-postmark-token',
-    ],
-
-#### SparkPost Driver
-
-To use the SparkPost driver, first install Guzzle, then set the `driver` option in your `config/mail.php` configuration file to `sparkpost`. Next, verify that your `config/services.php` configuration file contains the following options:
-
-    'sparkpost' => [
-        'secret' => 'your-sparkpost-key',
-    ],
-
-If necessary, you may also configure which [API endpoint](https://developers.sparkpost.com/api/#header-endpoints) should be used:
-
-    'sparkpost' => [
-        'secret' => 'your-sparkpost-key',
-        'options' => [
-            'endpoint' => 'https://api.eu.sparkpost.com/api/v1/transmissions',
-        ],
     ],
 
 #### SES Driver
@@ -439,7 +422,7 @@ To generate a mailable with a corresponding Markdown template, you may use the `
 
     php artisan make:mail OrderShipped --markdown=emails.orders.shipped
 
-Then, when configuring the mailable within its `build` method, call the `markdown` method instead of the `view` method. The `markdown` methods accepts the name of the Markdown template and an optional array of data to make available to the template:
+Then, when configuring the mailable within its `build` method, call the `markdown` method instead of the `view` method. The `markdown` method accepts the name of the Markdown template and an optional array of data to make available to the template:
 
     /**
      * Build the message.
@@ -512,7 +495,9 @@ This command will publish the Markdown mail components to the `resources/views/v
 
 After exporting the components, the `resources/views/vendor/mail/html/themes` directory will contain a `default.css` file. You may customize the CSS in this file and your styles will automatically be in-lined within the HTML representations of your Markdown mail messages.
 
-> {tip} If you would like to build an entirely new theme for the Markdown components, write a new CSS file within the `html/themes` directory and change the `theme` option of your `mail` configuration file.
+If you would like to build an entirely new theme for Laravel's Markdown components, you may place a CSS file within the `html/themes` directory. After naming and saving your CSS file, update the `theme` option of the `mail` configuration file to match the name of your new theme.
+
+To customize the theme for an individual mailable, you may set the `$theme` property of the mailable class to the name of the theme that should be used when sending that mailable.
 
 <a name="sending-mail"></a>
 ## Sending Mail
@@ -523,11 +508,11 @@ To send a message, use the `to` method on the `Mail` [facade](/docs/{{version}}/
 
     namespace App\Http\Controllers;
 
-    use App\Order;
+    use App\Http\Controllers\Controller;
     use App\Mail\OrderShipped;
+    use App\Order;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Mail;
-    use App\Http\Controllers\Controller;
 
     class OrderController extends Controller
     {

@@ -3,6 +3,7 @@
 - [Introduction](#introduction)
 - [Expecting Input / Output](#expecting-input-and-output)
 
+<a name="introduction"></a>
 ## Introduction
 
 In addition to simplifying HTTP testing, Laravel provides a simple API for testing console applications that ask for user input.
@@ -31,7 +32,7 @@ You may test this command with the following test which utilizes the `expectsQue
      *
      * @return void
      */
-    public function test_console_command()
+    public function testConsoleCommand()
     {
         $this->artisan('question')
              ->expectsQuestion('What is your name?', 'Taylor Otwell')
